@@ -12,7 +12,7 @@ create_board(int rows, int columns)
 
 	data.rows = rows;
 	data.columns = columns;
-	
+
 	int qtt = (columns*rows)*15/100 + 1; /* proporción de 15% de casillas
 					      * con mina + 1 extra en caso de
 					      * que hayan menos de 15 casillas
@@ -45,7 +45,7 @@ add_mine(struct game_data *data)
 	}
 
 	data->intern_board[pos_y*data->columns + pos_x] = 0b10000000;
-		
+
 	/* relleno de casillas contiguas a la mina */
 	for (int i = -1; i < 2; ++i) {
 		/* recorrido de filas contiguas */
@@ -72,10 +72,52 @@ click(int x, int y, struct game_data *data)
 		return 1;
 	}
 
-	if (data->intern_board[y*data->columns + x] & 0b00100000 || 
+	if (data->intern_board[y*data->columns + x] & 0b00100000 ||
 	    data->intern_board[y*data->columns + x] & 0b01000000) {
-		//printf("posición limpia\n");
-		return 1;
+
+		int qtty_flags = 0;
+
+		for (int i = -1; i < 2; ++i) {
+		    for (int j = -1; j < 2; ++j) {
+			    if (y + i < 0 || y + i >= data->rows ||
+                    x + j < 0 || x + j >= data->columns) {
+                    continue;
+                }
+
+				if (i == 0 && j == 0) {
+				    continue;
+				}
+
+				if (data->intern_board[(y + i)*data->columns + x + j] & 0b01000000) {
+                    qtty_flags++;
+                }
+			}
+		}
+
+		if (qtty_flags >= (data->intern_board[y*data->columns + x] & 0b00001111)) {
+            for (int i = -1; i < 2; ++i) {
+                for (int j = -1; j < 2; ++j) {
+                    if (y + i < 0 || y + i >= data->rows ||
+                        x + j < 0 || x + j >= data->columns) {
+                        continue;
+                    }
+
+                    if (i == 0 && j == 0) {
+                        continue;
+                    }
+
+                    if (!(data->intern_board[(y + i)*data->columns + x + j] & 0b01000000) && !(data->intern_board[(y + i)*data->columns + x + j] & 0b00100000)) {
+                        if (data->intern_board[(y + i)*data->columns + x + j] & 0b10000000) {
+                            return 2;
+                        }
+
+                        click(x + j, y + i, data);
+                    }
+
+                }
+            }
+        }
+
 	}
 
 	if (data->intern_board[y*data->columns + x] & 0b10000000) {
@@ -127,7 +169,7 @@ click(int x, int y, struct game_data *data)
 		data->intern_board[cell->y*data->columns + cell->x] |= 0b00100000;
 
 		delete_element(&next_cells);
-	
+
 	}
 
 	return 0;
